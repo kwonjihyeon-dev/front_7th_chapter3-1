@@ -1,13 +1,14 @@
 import { Badge, Button, Search } from "@/components/atoms";
 import { FormInput, FormSelect, FormTextarea, Pagination } from "@/components/molecules";
-import { Alert, Modal, Table, type Column } from "@/components/organisms";
+import { Alert, Modal, Table } from "@/components/organisms";
 import { useTableData } from "@/hooks";
-import { EntityTabs } from "@/management/molecules";
+import { EntityTabs, StatsGrid } from "@/management/molecules";
 import type { Post } from "@/services/postService";
 import { postService } from "@/services/postService";
 import type { User } from "@/services/userService";
 import { userService } from "@/services/userService";
 import { useEntityStore } from "@/stores/store";
+import type { Column } from "@/types";
 import React, { useEffect, useState } from "react";
 
 type Entity = User | Post;
@@ -183,22 +184,22 @@ export const ManagementPage: React.FC = () => {
         stat1: {
           label: "활성",
           value: users.filter((u) => u.status === "active").length,
-          color: "#2e7d32",
+          variant: "green" as const,
         },
         stat2: {
           label: "비활성",
           value: users.filter((u) => u.status === "inactive").length,
-          color: "#ed6c02",
+          variant: "orange" as const,
         },
         stat3: {
           label: "정지",
           value: users.filter((u) => u.status === "suspended").length,
-          color: "#d32f2f",
+          variant: "red" as const,
         },
         stat4: {
           label: "관리자",
           value: users.filter((u) => u.role === "admin").length,
-          color: "#1976d2",
+          variant: "blue" as const,
         },
       };
     } else {
@@ -208,22 +209,22 @@ export const ManagementPage: React.FC = () => {
         stat1: {
           label: "게시됨",
           value: posts.filter((p) => p.status === "published").length,
-          color: "#2e7d32",
+          variant: "green" as const,
         },
         stat2: {
           label: "임시저장",
           value: posts.filter((p) => p.status === "draft").length,
-          color: "#ed6c02",
+          variant: "orange" as const,
         },
         stat3: {
           label: "보관됨",
           value: posts.filter((p) => p.status === "archived").length,
-          color: "rgba(0, 0, 0, 0.6)",
+          variant: "red" as const,
         },
         stat4: {
           label: "총 조회수",
           value: posts.reduce((sum, p) => sum + p.views, 0),
-          color: "#1976d2",
+          variant: "gray" as const,
         },
       };
     }
@@ -393,154 +394,7 @@ export const ManagementPage: React.FC = () => {
               </div>
             )}
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-                gap: "10px",
-                marginBottom: "15px",
-              }}
-            >
-              <div
-                style={{
-                  padding: "12px 15px",
-                  background: "#e3f2fd",
-                  border: "1px solid #90caf9",
-                  borderRadius: "3px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}
-                >
-                  전체
-                </div>
-                <div
-                  style={{
-                    fontSize: "24px",
-                    fontWeight: "bold",
-                    color: "#1976d2",
-                  }}
-                >
-                  {stats.total}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "12px 15px",
-                  background: "#e8f5e9",
-                  border: "1px solid #81c784",
-                  borderRadius: "3px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {stats.stat1.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: "24px",
-                    fontWeight: "bold",
-                    color: "#388e3c",
-                  }}
-                >
-                  {stats.stat1.value}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "12px 15px",
-                  background: "#fff3e0",
-                  border: "1px solid #ffb74d",
-                  borderRadius: "3px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {stats.stat2.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: "24px",
-                    fontWeight: "bold",
-                    color: "#f57c00",
-                  }}
-                >
-                  {stats.stat2.value}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "12px 15px",
-                  background: "#ffebee",
-                  border: "1px solid #e57373",
-                  borderRadius: "3px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {stats.stat3.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: "24px",
-                    fontWeight: "bold",
-                    color: "#d32f2f",
-                  }}
-                >
-                  {stats.stat3.value}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "12px 15px",
-                  background: "#f5f5f5",
-                  border: "1px solid #bdbdbd",
-                  borderRadius: "3px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "12px",
-                    color: "#666",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {stats.stat4.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: "24px",
-                    fontWeight: "bold",
-                    color: "#424242",
-                  }}
-                >
-                  {stats.stat4.value}
-                </div>
-              </div>
-            </div>
+            <StatsGrid stats={stats} />
 
             <div
               style={{
