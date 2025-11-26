@@ -1,18 +1,19 @@
-import { Button, Search } from "@/components/atoms";
+import { Badge, Button, Search } from "@/components/atoms";
 import { FormInput, FormSelect, FormTextarea, Pagination } from "@/components/molecules";
-import { Alert, Modal, Table } from "@/components/organisms";
+import { Alert, Modal, Table, type Column } from "@/components/organisms";
 import { useTableData } from "@/hooks";
+import { EntityTabs } from "@/management/molecules";
 import type { Post } from "@/services/postService";
 import { postService } from "@/services/postService";
 import type { User } from "@/services/userService";
 import { userService } from "@/services/userService";
+import { useEntityStore } from "@/stores/store";
 import React, { useEffect, useState } from "react";
 
-type EntityType = "user" | "post";
 type Entity = User | Post;
 
 export const ManagementPage: React.FC = () => {
-  const [entityType, setEntityType] = useState<EntityType>("post");
+  const entityType = useEntityStore((state) => state.entityType);
   const [data, setData] = useState<Entity[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -228,29 +229,121 @@ export const ManagementPage: React.FC = () => {
     }
   };
 
-  // 🚨 Table 컴포넌트에 로직을 위임하여 간소화
-  const renderTableColumns = () => {
+  const renderTableColumns = (): Column<Entity>[] => {
     if (entityType === "user") {
       return [
         { key: "id", header: "ID", width: "60px" },
         { key: "username", header: "사용자명", width: "150px" },
         { key: "email", header: "이메일" },
-        { key: "role", header: "역할", width: "120px" },
-        { key: "status", header: "상태", width: "120px" },
+        {
+          key: "role",
+          header: "역할",
+          width: "120px",
+          render: (value: any) => <Badge userRole={value} showIcon />,
+        },
+        {
+          key: "status",
+          header: "상태",
+          width: "120px",
+          render: (value: any) => {
+            const badgeStatus = value === "active" ? "published" : value === "inactive" ? "draft" : "rejected";
+            return <Badge status={badgeStatus} showIcon />;
+          },
+        },
         { key: "createdAt", header: "생성일", width: "120px" },
-        { key: "lastLogin", header: "마지막 로그인", width: "140px" },
-        { key: "actions", header: "관리", width: "200px" },
+        {
+          key: "lastLogin",
+          header: "마지막 로그인",
+          width: "140px",
+          render: (value: any) => value || "-",
+        },
+        {
+          key: "actions",
+          header: "관리",
+          width: "200px",
+          render: (_: any, row: Entity) => (
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => handleEdit(row)}>
+                수정
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => handleDelete(row.id)}>
+                삭제
+              </Button>
+            </div>
+          ),
+        },
       ];
     } else {
       return [
         { key: "id", header: "ID", width: "60px" },
         { key: "title", header: "제목" },
         { key: "author", header: "작성자", width: "120px" },
-        { key: "category", header: "카테고리", width: "140px" },
-        { key: "status", header: "상태", width: "120px" },
-        { key: "views", header: "조회수", width: "100px" },
+        {
+          key: "category",
+          header: "카테고리",
+          width: "140px",
+          render: (value: any) => {
+            const type =
+              value === "development"
+                ? "primary"
+                : value === "design"
+                  ? "info"
+                  : value === "accessibility"
+                    ? "danger"
+                    : "secondary";
+            return (
+              <Badge type={type} pill>
+                {value}
+              </Badge>
+            );
+          },
+        },
+        {
+          key: "status",
+          header: "상태",
+          width: "120px",
+          render: (value: any) => <Badge status={value} showIcon />,
+        },
+        {
+          key: "views",
+          header: "조회수",
+          width: "100px",
+          render: (value: any) => value?.toLocaleString() || "0",
+        },
         { key: "createdAt", header: "작성일", width: "120px" },
-        { key: "actions", header: "관리", width: "250px" },
+        {
+          key: "actions",
+          header: "관리",
+          width: "250px",
+          render: (_: any, row: Entity) => {
+            const post = row as Post;
+            return (
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="primary" onClick={() => handleEdit(row)}>
+                  수정
+                </Button>
+                {post.status === "draft" && (
+                  <Button size="sm" variant="success" onClick={() => handleStatusAction(post.id, "publish")}>
+                    게시
+                  </Button>
+                )}
+                {post.status === "published" && (
+                  <Button size="sm" variant="secondary" onClick={() => handleStatusAction(post.id, "archive")}>
+                    보관
+                  </Button>
+                )}
+                {post.status === "archived" && (
+                  <Button size="sm" variant="primary" onClick={() => handleStatusAction(post.id, "restore")}>
+                    복원
+                  </Button>
+                )}
+                <Button size="sm" variant="danger" onClick={() => handleDelete(post.id)}>
+                  삭제
+                </Button>
+              </div>
+            );
+          },
+        },
       ];
     }
   };
@@ -274,52 +367,8 @@ export const ManagementPage: React.FC = () => {
           <p style={{ color: "#666", fontSize: "14px" }}>사용자와 게시글을 관리하세요</p>
         </div>
 
-        <div
-          style={{
-            background: "white",
-            border: "1px solid #ddd",
-            padding: "10px",
-          }}
-        >
-          <div
-            style={{
-              marginBottom: "15px",
-              borderBottom: "2px solid #ccc",
-              paddingBottom: "5px",
-            }}
-          >
-            <button
-              onClick={() => setEntityType("post")}
-              style={{
-                padding: "8px 16px",
-                marginRight: "5px",
-                fontSize: "14px",
-                fontWeight: entityType === "post" ? "bold" : "normal",
-                border: "1px solid #999",
-                background: entityType === "post" ? "#1976d2" : "#f5f5f5",
-                color: entityType === "post" ? "white" : "#333",
-                cursor: "pointer",
-                borderRadius: "3px",
-              }}
-            >
-              게시글
-            </button>
-            <button
-              onClick={() => setEntityType("user")}
-              style={{
-                padding: "8px 16px",
-                fontSize: "14px",
-                fontWeight: entityType === "user" ? "bold" : "normal",
-                border: "1px solid #999",
-                background: entityType === "user" ? "#1976d2" : "#f5f5f5",
-                color: entityType === "user" ? "white" : "#333",
-                cursor: "pointer",
-                borderRadius: "3px",
-              }}
-            >
-              사용자
-            </button>
-          </div>
+        <div className="border border-gray-300 bg-white p-2.5">
+          <EntityTabs />
 
           <div>
             <div className="mb-[15px] text-right">
@@ -501,18 +550,7 @@ export const ManagementPage: React.FC = () => {
               }}
             >
               {searchable && <Search value={searchTerm} onChange={setSearchTerm} />}
-              <Table
-                columns={renderTableColumns()}
-                data={paginatedData}
-                striped
-                hover
-                entityType={entityType}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onPublish={(id) => handleStatusAction(id, "publish")}
-                onArchive={(id) => handleStatusAction(id, "archive")}
-                onRestore={(id) => handleStatusAction(id, "restore")}
-              />
+              <Table columns={renderTableColumns()} data={paginatedData} striped hover />
               <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
             </div>
           </div>
