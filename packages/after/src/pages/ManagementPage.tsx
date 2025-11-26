@@ -2,7 +2,7 @@ import { Badge, Button, Search } from "@/components/atoms";
 import { FormInput, FormSelect, FormTextarea, Pagination } from "@/components/molecules";
 import { Alert, Modal, Table } from "@/components/organisms";
 import { useTableData } from "@/hooks";
-import { EntityTabs, StatsGrid } from "@/management/molecules";
+import { EntityTabs, ManagementStatsGrid } from "@/management/molecules";
 import type { Post } from "@/services/postService";
 import { postService } from "@/services/postService";
 import type { User } from "@/services/userService";
@@ -17,14 +17,16 @@ type ModalMode = "create" | "edit" | null;
 
 export const ManagementPage: React.FC = () => {
   const entityType = useEntityStore((state) => state.entityType);
-  const [data, setData] = useState<Entity[]>([]);
+  const data = useEntityStore((state) => state.data);
+  const setData = useEntityStore((state) => state.setData);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [selectedItem, setSelectedItem] = useState<Entity | null>(null);
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [showErrorAlert, setShowErrorAlert] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [alert, setAlert] = useState<{ type: "success" | "error" | null; message: string; title: string }>({
+    type: null,
+    message: "",
+    title: "",
+  });
   const [searchable] = useState(false);
 
   const [formData, setFormData] = useState<any>({});
@@ -50,6 +52,18 @@ export const ManagementPage: React.FC = () => {
     setSelectedItem(null);
   };
 
+  const showAlert = (type: "success" | "error", message: string, title?: string) => {
+    setAlert({
+      type,
+      message,
+      title: title || (type === "success" ? "성공" : "오류"),
+    });
+  };
+
+  const closeAlert = () => {
+    setAlert({ type: null, message: "", title: "" });
+  };
+
   const loadData = async () => {
     try {
       let result: Entity[];
@@ -62,8 +76,7 @@ export const ManagementPage: React.FC = () => {
 
       setData(result);
     } catch (error: any) {
-      setErrorMessage("데이터를 불러오는데 실패했습니다");
-      setShowErrorAlert(true);
+      showAlert("error", "데이터를 불러오는데 실패했습니다");
     }
   };
 
@@ -88,11 +101,9 @@ export const ManagementPage: React.FC = () => {
 
       await loadData();
       closeModal();
-      setAlertMessage(`${entityType === "user" ? "사용자" : "게시글"}가 생성되었습니다`);
-      setShowSuccessAlert(true);
+      showAlert("success", `${entityType === "user" ? "사용자" : "게시글"}가 생성되었습니다`);
     } catch (error: any) {
-      setErrorMessage(error.message || "생성에 실패했습니다");
-      setShowErrorAlert(true);
+      showAlert("error", error.message || "생성에 실패했습니다");
     }
   };
 
@@ -134,11 +145,9 @@ export const ManagementPage: React.FC = () => {
 
       await loadData();
       closeModal();
-      setAlertMessage(`${entityType === "user" ? "사용자" : "게시글"}가 수정되었습니다`);
-      setShowSuccessAlert(true);
+      showAlert("success", `${entityType === "user" ? "사용자" : "게시글"}가 수정되었습니다`);
     } catch (error: any) {
-      setErrorMessage(error.message || "수정에 실패했습니다");
-      setShowErrorAlert(true);
+      showAlert("error", error.message || "수정에 실패했습니다");
     }
   };
 
@@ -153,11 +162,9 @@ export const ManagementPage: React.FC = () => {
       }
 
       await loadData();
-      setAlertMessage("삭제되었습니다");
-      setShowSuccessAlert(true);
+      showAlert("success", "삭제되었습니다");
     } catch (error: any) {
-      setErrorMessage(error.message || "삭제에 실패했습니다");
-      setShowErrorAlert(true);
+      showAlert("error", error.message || "삭제에 실패했습니다");
     }
   };
 
@@ -175,65 +182,9 @@ export const ManagementPage: React.FC = () => {
 
       await loadData();
       const message = action === "publish" ? "게시" : action === "archive" ? "보관" : "복원";
-      setAlertMessage(`${message}되었습니다`);
-      setShowSuccessAlert(true);
+      showAlert("success", `${message}되었습니다`);
     } catch (error: any) {
-      setErrorMessage(error.message || "작업에 실패했습니다");
-      setShowErrorAlert(true);
-    }
-  };
-
-  const getStats = () => {
-    if (entityType === "user") {
-      const users = data as User[];
-      return {
-        total: users.length,
-        stat1: {
-          label: "활성",
-          value: users.filter((u) => u.status === "active").length,
-          variant: "green" as const,
-        },
-        stat2: {
-          label: "비활성",
-          value: users.filter((u) => u.status === "inactive").length,
-          variant: "orange" as const,
-        },
-        stat3: {
-          label: "정지",
-          value: users.filter((u) => u.status === "suspended").length,
-          variant: "red" as const,
-        },
-        stat4: {
-          label: "관리자",
-          value: users.filter((u) => u.role === "admin").length,
-          variant: "blue" as const,
-        },
-      };
-    } else {
-      const posts = data as Post[];
-      return {
-        total: posts.length,
-        stat1: {
-          label: "게시됨",
-          value: posts.filter((p) => p.status === "published").length,
-          variant: "green" as const,
-        },
-        stat2: {
-          label: "임시저장",
-          value: posts.filter((p) => p.status === "draft").length,
-          variant: "orange" as const,
-        },
-        stat3: {
-          label: "보관됨",
-          value: posts.filter((p) => p.status === "archived").length,
-          variant: "red" as const,
-        },
-        stat4: {
-          label: "총 조회수",
-          value: posts.reduce((sum, p) => sum + p.views, 0),
-          variant: "gray" as const,
-        },
-      };
+      showAlert("error", error.message || "작업에 실패했습니다");
     }
   };
 
@@ -356,8 +307,6 @@ export const ManagementPage: React.FC = () => {
     }
   };
 
-  const stats = getStats();
-
   return (
     <div className="min-h-[100vh] bg-[#f0f0f0]">
       <div className="mx-auto max-w-[1200px] p-[20px]">
@@ -365,7 +314,6 @@ export const ManagementPage: React.FC = () => {
           <h1 className="mb-[5px] text-[24px] font-bold text-[var(--color-gray-900)]">관리 시스템</h1>
           <p className="text-[14px] text-[var(--color-gray-600)]">사용자와 게시글을 관리하세요</p>
         </div>
-
         <div className="border border-gray-300 bg-white p-2.5">
           <EntityTabs />
 
@@ -383,23 +331,15 @@ export const ManagementPage: React.FC = () => {
               </Button>
             </div>
 
-            {showSuccessAlert && (
-              <div style={{ marginBottom: "10px" }}>
-                <Alert variant="success" title="성공" onClose={() => setShowSuccessAlert(false)}>
-                  {alertMessage}
+            {alert.type && (
+              <div className="mb-[10px]">
+                <Alert variant={alert.type} title={alert.title} onClose={closeAlert}>
+                  {alert.message}
                 </Alert>
               </div>
             )}
 
-            {showErrorAlert && (
-              <div style={{ marginBottom: "10px" }}>
-                <Alert variant="error" title="오류" onClose={() => setShowErrorAlert(false)}>
-                  {errorMessage}
-                </Alert>
-              </div>
-            )}
-
-            <StatsGrid stats={stats} />
+            <ManagementStatsGrid />
 
             <div className="overflow-auto border border-[var(--color-gray-400)] bg-white">
               {searchable && <Search value={searchTerm} onChange={setSearchTerm} />}

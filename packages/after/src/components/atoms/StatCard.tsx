@@ -1,7 +1,8 @@
+import { ShadcnCard, ShadcnCardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 
-const statCardVariants = cva("p-[var(--spacing-stat-padding)] rounded-[var(--radius-md)] border", {
+const statCardVariants = cva("rounded-[var(--radius-md)] border", {
   variants: {
     variant: {
       blue: "bg-[var(--color-info-50)] border-[var(--color-info-200)]",
@@ -39,13 +40,15 @@ interface StatCardProps extends VariantProps<typeof statCardVariants> {
 
 export function StatCard({ label, value, variant = "blue", className }: StatCardProps) {
   return (
-    <div className={cn(statCardVariants({ variant }), className)}>
-      <div className="mb-[var(--spacing-stat-label-mb)] text-[length:var(--font-size-stat-label)] text-[var(--color-gray-500)]">
-        {label}
-      </div>
-      <div className={cn(statCardValueVariants({ variant }))}>
-        {typeof value === "number" ? value.toLocaleString() : value}
-      </div>
-    </div>
+    <ShadcnCard className={cn(statCardVariants({ variant }), "gap-0 py-0", className)}>
+      <ShadcnCardContent className="p-[var(--spacing-stat-padding)]">
+        <div className="mb-[var(--spacing-stat-label-mb)] text-[length:var(--font-size-stat-label)] text-[var(--color-gray-500)]">
+          {label}
+        </div>
+        <div className={cn(statCardValueVariants({ variant }))}>
+          {typeof value === "number" ? value.toLocaleString() : value}
+        </div>
+      </ShadcnCardContent>
+    </ShadcnCard>
   );
 }
