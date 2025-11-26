@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { Button, Badge } from "../components/atoms";
-import { Alert, Table, Modal } from "../components/organisms";
-import { FormInput, FormSelect, FormTextarea } from "../components/molecules";
-import { userService } from "../services/userService";
-import { postService } from "../services/postService";
-import type { User } from "../services/userService";
-import type { Post } from "../services/postService";
+import { Button, Search } from "@/components/atoms";
+import { FormInput, FormSelect, FormTextarea, Pagination } from "@/components/molecules";
+import { Alert, Modal, Table } from "@/components/organisms";
+import { useTableData } from "@/hooks";
+import type { Post } from "@/services/postService";
+import { postService } from "@/services/postService";
+import type { User } from "@/services/userService";
+import { userService } from "@/services/userService";
+import React, { useEffect, useState } from "react";
 
 type EntityType = "user" | "post";
 type Entity = User | Post;
@@ -20,8 +21,15 @@ export const ManagementPage: React.FC = () => {
   const [alertMessage, setAlertMessage] = useState("");
   const [showErrorAlert, setShowErrorAlert] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [searchable] = useState(false);
 
   const [formData, setFormData] = useState<any>({});
+
+  const { paginatedData, totalPages, currentPage, setCurrentPage, searchTerm, setSearchTerm } = useTableData({
+    data,
+    pageSize: 10,
+    searchable,
+  });
 
   useEffect(() => {
     loadData();
@@ -70,9 +78,7 @@ export const ManagementPage: React.FC = () => {
       await loadData();
       setIsCreateModalOpen(false);
       setFormData({});
-      setAlertMessage(
-        `${entityType === "user" ? "사용자" : "게시글"}가 생성되었습니다`
-      );
+      setAlertMessage(`${entityType === "user" ? "사용자" : "게시글"}가 생성되었습니다`);
       setShowSuccessAlert(true);
     } catch (error: any) {
       setErrorMessage(error.message || "생성에 실패했습니다");
@@ -119,9 +125,7 @@ export const ManagementPage: React.FC = () => {
       setIsEditModalOpen(false);
       setFormData({});
       setSelectedItem(null);
-      setAlertMessage(
-        `${entityType === "user" ? "사용자" : "게시글"}가 수정되었습니다`
-      );
+      setAlertMessage(`${entityType === "user" ? "사용자" : "게시글"}가 수정되었습니다`);
       setShowSuccessAlert(true);
     } catch (error: any) {
       setErrorMessage(error.message || "수정에 실패했습니다");
@@ -148,10 +152,7 @@ export const ManagementPage: React.FC = () => {
     }
   };
 
-  const handleStatusAction = async (
-    id: number,
-    action: "publish" | "archive" | "restore"
-  ) => {
+  const handleStatusAction = async (id: number, action: "publish" | "archive" | "restore") => {
     if (entityType !== "post") return;
 
     try {
@@ -164,8 +165,7 @@ export const ManagementPage: React.FC = () => {
       }
 
       await loadData();
-      const message =
-        action === "publish" ? "게시" : action === "archive" ? "보관" : "복원";
+      const message = action === "publish" ? "게시" : action === "archive" ? "보관" : "복원";
       setAlertMessage(`${message}되었습니다`);
       setShowSuccessAlert(true);
     } catch (error: any) {
@@ -271,9 +271,7 @@ export const ManagementPage: React.FC = () => {
           >
             관리 시스템
           </h1>
-          <p style={{ color: "#666", fontSize: "14px" }}>
-            사용자와 게시글을 관리하세요
-          </p>
+          <p style={{ color: "#666", fontSize: "14px" }}>사용자와 게시글을 관리하세요</p>
         </div>
 
         <div
@@ -325,22 +323,14 @@ export const ManagementPage: React.FC = () => {
 
           <div>
             <div className="mb-[15px] text-right">
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => setIsCreateModalOpen(true)}
-              >
+              <Button variant="primary" size="md" onClick={() => setIsCreateModalOpen(true)}>
                 새로 만들기
               </Button>
             </div>
 
             {showSuccessAlert && (
               <div style={{ marginBottom: "10px" }}>
-                <Alert
-                  variant="success"
-                  title="성공"
-                  onClose={() => setShowSuccessAlert(false)}
-                >
+                <Alert variant="success" title="성공" onClose={() => setShowSuccessAlert(false)}>
                   {alertMessage}
                 </Alert>
               </div>
@@ -348,11 +338,7 @@ export const ManagementPage: React.FC = () => {
 
             {showErrorAlert && (
               <div style={{ marginBottom: "10px" }}>
-                <Alert
-                  variant="error"
-                  title="오류"
-                  onClose={() => setShowErrorAlert(false)}
-                >
+                <Alert variant="error" title="오류" onClose={() => setShowErrorAlert(false)}>
                   {errorMessage}
                 </Alert>
               </div>
@@ -514,9 +500,10 @@ export const ManagementPage: React.FC = () => {
                 overflow: "auto",
               }}
             >
+              {searchable && <Search value={searchTerm} onChange={setSearchTerm} />}
               <Table
                 columns={renderTableColumns()}
-                data={data}
+                data={paginatedData}
                 striped
                 hover
                 entityType={entityType}
@@ -526,6 +513,7 @@ export const ManagementPage: React.FC = () => {
                 onArchive={(id) => handleStatusAction(id, "archive")}
                 onRestore={(id) => handleStatusAction(id, "restore")}
               />
+              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
             </div>
           </div>
         </div>
@@ -564,9 +552,7 @@ export const ManagementPage: React.FC = () => {
               <FormInput
                 name="username"
                 value={formData.username || ""}
-                onChange={(value) =>
-                  setFormData({ ...formData, username: value })
-                }
+                onChange={(value) => setFormData({ ...formData, username: value })}
                 label="사용자명"
                 placeholder="사용자명을 입력하세요"
                 required
@@ -594,9 +580,7 @@ export const ManagementPage: React.FC = () => {
                 <FormSelect
                   name="role"
                   value={formData.role || "user"}
-                  onChange={(value) =>
-                    setFormData({ ...formData, role: value })
-                  }
+                  onChange={(value) => setFormData({ ...formData, role: value })}
                   options={[
                     { value: "user", label: "사용자" },
                     { value: "moderator", label: "운영자" },
@@ -608,9 +592,7 @@ export const ManagementPage: React.FC = () => {
                 <FormSelect
                   name="status"
                   value={formData.status || "active"}
-                  onChange={(value) =>
-                    setFormData({ ...formData, status: value })
-                  }
+                  onChange={(value) => setFormData({ ...formData, status: value })}
                   options={[
                     { value: "active", label: "활성" },
                     { value: "inactive", label: "비활성" },
@@ -643,9 +625,7 @@ export const ManagementPage: React.FC = () => {
                 <FormInput
                   name="author"
                   value={formData.author || ""}
-                  onChange={(value) =>
-                    setFormData({ ...formData, author: value })
-                  }
+                  onChange={(value) => setFormData({ ...formData, author: value })}
                   label="작성자"
                   placeholder="작성자명"
                   required
@@ -654,9 +634,7 @@ export const ManagementPage: React.FC = () => {
                 <FormSelect
                   name="category"
                   value={formData.category || ""}
-                  onChange={(value) =>
-                    setFormData({ ...formData, category: value })
-                  }
+                  onChange={(value) => setFormData({ ...formData, category: value })}
                   options={[
                     { value: "development", label: "Development" },
                     { value: "design", label: "Design" },
@@ -670,9 +648,7 @@ export const ManagementPage: React.FC = () => {
               <FormTextarea
                 name="content"
                 value={formData.content || ""}
-                onChange={(value) =>
-                  setFormData({ ...formData, content: value })
-                }
+                onChange={(value) => setFormData({ ...formData, content: value })}
                 label="내용"
                 placeholder="게시글 내용을 입력하세요"
                 rows={6}
@@ -715,8 +691,7 @@ export const ManagementPage: React.FC = () => {
           {selectedItem && (
             <Alert variant="info">
               ID: {selectedItem.id} | 생성일: {selectedItem.createdAt}
-              {entityType === "post" &&
-                ` | 조회수: ${(selectedItem as Post).views}`}
+              {entityType === "post" && ` | 조회수: ${(selectedItem as Post).views}`}
             </Alert>
           )}
 
@@ -725,9 +700,7 @@ export const ManagementPage: React.FC = () => {
               <FormInput
                 name="username"
                 value={formData.username || ""}
-                onChange={(value) =>
-                  setFormData({ ...formData, username: value })
-                }
+                onChange={(value) => setFormData({ ...formData, username: value })}
                 label="사용자명"
                 placeholder="사용자명을 입력하세요"
                 required
@@ -755,9 +728,7 @@ export const ManagementPage: React.FC = () => {
                 <FormSelect
                   name="role"
                   value={formData.role || "user"}
-                  onChange={(value) =>
-                    setFormData({ ...formData, role: value })
-                  }
+                  onChange={(value) => setFormData({ ...formData, role: value })}
                   options={[
                     { value: "user", label: "사용자" },
                     { value: "moderator", label: "운영자" },
@@ -769,9 +740,7 @@ export const ManagementPage: React.FC = () => {
                 <FormSelect
                   name="status"
                   value={formData.status || "active"}
-                  onChange={(value) =>
-                    setFormData({ ...formData, status: value })
-                  }
+                  onChange={(value) => setFormData({ ...formData, status: value })}
                   options={[
                     { value: "active", label: "활성" },
                     { value: "inactive", label: "비활성" },
@@ -804,9 +773,7 @@ export const ManagementPage: React.FC = () => {
                 <FormInput
                   name="author"
                   value={formData.author || ""}
-                  onChange={(value) =>
-                    setFormData({ ...formData, author: value })
-                  }
+                  onChange={(value) => setFormData({ ...formData, author: value })}
                   label="작성자"
                   placeholder="작성자명"
                   required
@@ -815,9 +782,7 @@ export const ManagementPage: React.FC = () => {
                 <FormSelect
                   name="category"
                   value={formData.category || ""}
-                  onChange={(value) =>
-                    setFormData({ ...formData, category: value })
-                  }
+                  onChange={(value) => setFormData({ ...formData, category: value })}
                   options={[
                     { value: "development", label: "Development" },
                     { value: "design", label: "Design" },
@@ -831,9 +796,7 @@ export const ManagementPage: React.FC = () => {
               <FormTextarea
                 name="content"
                 value={formData.content || ""}
-                onChange={(value) =>
-                  setFormData({ ...formData, content: value })
-                }
+                onChange={(value) => setFormData({ ...formData, content: value })}
                 label="내용"
                 placeholder="게시글 내용을 입력하세요"
                 rows={6}

@@ -1,6 +1,6 @@
-import { Badge, Button, Search, TableCell, TableRow } from "@/components/atoms";
-import { Pagination, TableBody, Table as TableElement, TableHeader } from "@/components/molecules";
-import React, { useEffect, useState } from "react";
+import { Badge, Button, TableCell, TableRow } from "@/components/atoms";
+import { TableBody, Table as TableElement, TableHeader } from "@/components/molecules";
+import React from "react";
 
 interface Column {
   key: string;
@@ -15,8 +15,6 @@ interface TableProps {
   striped?: boolean;
   bordered?: boolean;
   hover?: boolean;
-  pageSize?: number;
-  searchable?: boolean;
   sortable?: boolean;
   onRowClick?: (row: any) => void;
 
@@ -35,8 +33,6 @@ export const Table: React.FC<TableProps> = ({
   striped = false,
   bordered = false,
   hover = false,
-  pageSize = 10,
-  searchable = false,
   onRowClick,
   entityType,
   onEdit,
@@ -45,25 +41,6 @@ export const Table: React.FC<TableProps> = ({
   onArchive,
   onRestore,
 }) => {
-  const [tableData, setTableData] = useState<any[]>(data);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("");
-
-  useEffect(() => {
-    setTableData(data);
-  }, [data]);
-
-  const filteredData =
-    searchable && searchTerm
-      ? tableData.filter((row) =>
-          Object.values(row).some((val) => String(val).toLowerCase().includes(searchTerm.toLowerCase())),
-        )
-      : tableData;
-
-  const paginatedData = filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  const totalPages = Math.ceil(filteredData.length / pageSize);
-
   const tableClasses = [
     striped && "[&_tbody_tr:nth-child(even)]:bg-[var(--color-gray-50)]",
     bordered &&
@@ -75,8 +52,8 @@ export const Table: React.FC<TableProps> = ({
 
   const actualColumns =
     columns ||
-    (tableData[0]
-      ? Object.keys(tableData[0]).map((key) => ({
+    (data[0]
+      ? Object.keys(data[0]).map((key) => ({
           key,
           header: key,
           width: undefined,
@@ -175,8 +152,6 @@ export const Table: React.FC<TableProps> = ({
 
   return (
     <div className="overflow-x-auto">
-      {searchable && <Search value={searchTerm} onChange={setSearchTerm} />}
-
       <TableElement className={tableClasses}>
         <TableHeader className="bg-[var(--color-gray-50)]">
           <TableRow>
@@ -188,7 +163,7 @@ export const Table: React.FC<TableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedData.map((row, rowIndex) => (
+          {data.map((row, rowIndex) => (
             <TableRow
               key={rowIndex}
               onClick={() => onRowClick?.(row)}
@@ -201,7 +176,6 @@ export const Table: React.FC<TableProps> = ({
           ))}
         </TableBody>
       </TableElement>
-      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
     </div>
   );
 };
