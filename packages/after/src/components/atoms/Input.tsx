@@ -1,4 +1,3 @@
-import { Input as UIInput } from "@/components/ui/input";
+import { ShadcnInput } from "@/components/ui/input";
 
-export { UIInput as Input };
-
+export { ShadcnInput as Input };
