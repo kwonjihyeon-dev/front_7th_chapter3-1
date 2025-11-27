@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import React, { createContext, useContext, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalContextValue {
   isOpen: boolean;
@@ -50,7 +51,7 @@ const ModalRoot: React.FC<ModalRootProps> = ({ isOpen, onClose, size = "medium",
 
   const modalClasses = cn(baseModalClasses, sizeClasses[size]);
 
-  return (
+  const modalContent = (
     <ModalContext.Provider value={{ isOpen, onClose, size }}>
       <div
         className="fixed inset-0 z-[1000] flex items-center justify-center bg-[rgba(0,0,0,0.5)] p-4"
@@ -62,6 +63,8 @@ const ModalRoot: React.FC<ModalRootProps> = ({ isOpen, onClose, size = "medium",
       </div>
     </ModalContext.Provider>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 // Modal Header Component

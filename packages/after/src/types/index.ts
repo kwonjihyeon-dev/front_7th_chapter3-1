@@ -10,3 +10,5 @@ export interface Column<T = any> {
 
 export type EntityType = "user" | "post";
 export type Entity = User | Post;
+
+export type ManagementMode = "create" | "edit" | null;
