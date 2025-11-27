@@ -1,7 +1,7 @@
 import { Badge, Button, Search } from "@/components/atoms";
 import { Pagination } from "@/components/molecules";
 import { Alert, Table } from "@/components/organisms";
-import { useModal, useTableData } from "@/hooks";
+import { useLoadPostData, useLoadUserData, useModal, useTableData } from "@/hooks";
 import { EntityTabs, ManagementStatsGrid } from "@/management/molecules";
 import { PostManagementModal, UserManagementModal } from "@/management/organisms";
 import type { Post } from "@/services/postService";
@@ -17,7 +17,6 @@ type Entity = User | Post;
 export const ManagementPage: React.FC = () => {
   const entityType = useEntityStore((state) => state.entityType);
   const data = useEntityStore((state) => state.data);
-  const setData = useEntityStore((state) => state.setData);
   const [selectedItem, setSelectedItem] = useState<Entity | null>(null);
   const [alert, setAlert] = useState<{ type: "success" | "error" | null; message: string; title: string }>({
     type: null,
@@ -33,17 +32,18 @@ export const ManagementPage: React.FC = () => {
     searchable,
   });
 
+  const { loadData: loadPostData } = useLoadPostData();
+  const { loadData: loadUserData } = useLoadUserData();
+
   useEffect(() => {
-    loadData();
+    if (entityType === "user") {
+      loadUserData();
+    } else {
+      loadPostData();
+    }
     closeModal();
     setSelectedItem(null);
   }, [entityType]);
-
-  // const closeModal = () => {
-  //   setIsModalOpen(false);
-  //   setModalMode(null);
-  //   setSelectedItem(null);
-  // };
 
   const showAlert = (type: "success" | "error", message: string, title?: string) => {
     setAlert({
@@ -57,68 +57,9 @@ export const ManagementPage: React.FC = () => {
     setAlert({ type: null, message: "", title: "" });
   };
 
-  const loadData = async () => {
-    try {
-      let result: Entity[];
-
-      if (entityType === "user") {
-        result = await userService.getAll();
-      } else {
-        result = await postService.getAll();
-      }
-
-      setData(result);
-    } catch (error: any) {
-      showAlert("error", "데이터를 불러오는데 실패했습니다");
-    }
-  };
-
-  const handlePostCreate = async (postData: Partial<Post>) => {
-    try {
-      await postService.create({
-        title: postData.title!,
-        content: postData.content || "",
-        author: postData.author!,
-        category: postData.category!,
-        status: (postData.status as "draft" | "published" | "archived") || "draft",
-      });
-      await loadData();
-      showAlert("success", "게시글이 생성되었습니다");
-    } catch (error: any) {
-      showAlert("error", error.message || "생성에 실패했습니다");
-      throw error;
-    }
-  };
-
   const handleEdit = (item: Entity) => {
     setSelectedItem(item);
     openModal("edit");
-  };
-
-  const handleUserUpdate = async (userData: Partial<User>) => {
-    if (!selectedItem) return;
-
-    try {
-      await userService.update(selectedItem.id, userData);
-      await loadData();
-      showAlert("success", "사용자가 수정되었습니다");
-    } catch (error: any) {
-      showAlert("error", error.message || "수정에 실패했습니다");
-      throw error;
-    }
-  };
-
-  const handlePostUpdate = async (postData: Partial<Post>) => {
-    if (!selectedItem) return;
-
-    try {
-      await postService.update(selectedItem.id, postData);
-      await loadData();
-      showAlert("success", "게시글이 수정되었습니다");
-    } catch (error: any) {
-      showAlert("error", error.message || "수정에 실패했습니다");
-      throw error;
-    }
   };
 
   const handleDelete = async (id: number) => {
@@ -127,11 +68,12 @@ export const ManagementPage: React.FC = () => {
     try {
       if (entityType === "user") {
         await userService.delete(id);
+        await loadUserData();
       } else {
         await postService.delete(id);
+        await loadPostData();
       }
 
-      await loadData();
       showAlert("success", "삭제되었습니다");
     } catch (error: any) {
       showAlert("error", error.message || "삭제에 실패했습니다");
@@ -150,7 +92,7 @@ export const ManagementPage: React.FC = () => {
         await postService.restore(id);
       }
 
-      await loadData();
+      await loadPostData();
       const message = action === "publish" ? "게시" : action === "archive" ? "보관" : "복원";
       showAlert("success", `${message}되었습니다`);
     } catch (error: any) {
